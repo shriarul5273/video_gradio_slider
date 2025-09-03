@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { background: #fff; margin: 2rem; }
+
+    #video-compare-container { 
+      display: inline-block; 
+      line-height: 0; 
+      position: relative; 
+      width: 800px; 
+      height: 450px; 
+      user-select: none; 
+      overflow: hidden;
+    }
+
+    #video-compare-container > video { 
+      width: 100%; 
+      height: 100%; 
+      position: absolute; 
+      top: 0; 
+      left: 0;
+      object-fit: cover; 
+    }
+
+    #video-clipper { 
+      width: 50%; 
+      position: absolute; 
+      top: 0; 
+      bottom: 0; 
+      right: 0;
+      overflow: hidden; 
+    }
+
+    #video-clipper video { 
+      width: 800px; 
+      height: 450px; 
+      position: absolute; 
+      top: 0; 
+      right: 0;
+      object-fit: cover; 
+    }
+
+    /* Draggable vertical handle */
+    #slider-handle { position:absolute; top:0; left:50%; width:4px; height:100%; background:#fff; border-left:1px solid #000; border-right:1px solid #000; cursor:ew-resize; z-index:10; transform:translateX(-2px); box-shadow:0 0 4px rgba(0,0,0,.5); }
+    #slider-handle:before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:14px; height:42px; background:rgba(0,0,0,.35); border:2px solid #fff; border-radius:4px; }
+    #slider-handle:after { content:'⇔'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; font:700 12px/1 sans-serif; }
+  </style>
+</head>
+<body>
+  <center>
+    <h3>Click video to play/pause. Drag the center bar to compare.</h3>
+  </center>
+
+  <div id="video-compare-container">
+    <video id='src' loop autoplay playsinline muted onclick="video_click(this)">
+      <source src="green.mp4">
+    </video>
+    <div id="video-clipper">
+      <video id='tgt' loop autoplay playsinline muted onclick="video_click(this)">
+        <source src="red.mp4">
+      </video>
+    </div>
+    <div id="slider-handle"></div>
+  </div>
+
+  <script>
+    // Playback sync
+    const v = document.getElementById("src");
+    const v2 = document.getElementById("tgt");
+    
+    function video_click(clickedVideo){
+      if (v.paused){ 
+        v.play(); 
+        v2.play(); 
+      } else { 
+        v.pause(); 
+        v2.pause(); 
+      }
+      // Sync both videos to the clicked video's time
+      const targetTime = clickedVideo.currentTime;
+      v.currentTime = targetTime;
+      v2.currentTime = targetTime;
+    }
+
+    // Keep videos synchronized during playback
+    function syncVideos() {
+      if (!v.paused && !v2.paused) {
+        // Use the primary video (src) as the time reference
+        if (Math.abs(v.currentTime - v2.currentTime) > 0.1) {
+          v2.currentTime = v.currentTime;
+        }
+      }
+    }
+
+    // Sync videos periodically
+    setInterval(syncVideos, 100);
+
+    // Ensure videos start together
+    v.addEventListener('loadeddata', () => {
+      v.currentTime = 0;
+      v2.currentTime = 0;
+    });
+
+    v2.addEventListener('loadeddata', () => {
+      v.currentTime = 0;
+      v2.currentTime = 0;
+    });
+
+    // Slider logic
+    const container = document.getElementById('video-compare-container');
+    const clipper = document.getElementById('video-clipper');
+    const handle = document.getElementById('slider-handle');
+
+    let dragging = false;
+
+    function setPosition(clientX){
+      const rect = container.getBoundingClientRect();
+      let x = Math.min(Math.max(clientX - rect.left, 0), rect.width); // clamp
+      const percent = (x / rect.width) * 100;
+      clipper.style.width = (100 - percent) + '%';
+      handle.style.left = percent + '%';
+      
+      // Update the second video position to maintain overlay effect
+      const clipperVideo = clipper.querySelector('video');
+      clipperVideo.style.right = '0px';
+    }
+
+    function pointerDown(e){ dragging = true; setPosition(pointerX(e)); e.preventDefault(); }
+    function pointerMove(e){ if(!dragging) return; setPosition(pointerX(e)); }
+    function pointerUp(){ dragging = false; }
+
+    function pointerX(e){ return e.touches ? e.touches[0].clientX : e.clientX; }
+
+    handle.addEventListener('mousedown', pointerDown);
+    window.addEventListener('mousemove', pointerMove);
+    window.addEventListener('mouseup', pointerUp);
+
+    handle.addEventListener('touchstart', pointerDown, {passive:false});
+    window.addEventListener('touchmove', pointerMove, {passive:false});
+    window.addEventListener('touchend', pointerUp);
+
+    // Optional: allow clicking anywhere to reposition
+    container.addEventListener('mousedown', (e)=>{ 
+      if(e.target !== handle && e.target.tagName !== 'VIDEO'){ 
+        pointerDown(e);
+      } 
+    });
+    container.addEventListener('touchstart', (e)=>{ 
+      if(e.target !== handle && e.target.tagName !== 'VIDEO'){ 
+        pointerDown(e);
+      } 
+    }, {passive:false});
+  </script>
+</body>
+</html>
