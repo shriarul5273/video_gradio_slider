@@ -94,12 +94,6 @@
 		style="transform: translateX({px}px)"
 		class:grab={active}
 	>
-		<span class="icon-wrap" class:active class:disabled
-			><span class="icon left">◢</span><span
-				class="icon center"
-				style:--color={slider_color}
-			></span><span class="icon right">◢</span></span
-		>
 		<div class="inner" style:--color={slider_color}></div>
 	</div>
 </div>
@@ -113,51 +107,6 @@
 		overflow: hidden;
 	}
 
-	.icon-wrap {
-		display: block;
-		position: absolute;
-		top: 50%;
-		transform: translate(-20.5px, -50%);
-		left: 10px;
-		width: 40px;
-		transition: 0.2s;
-		color: var(--body-text-color);
-		height: 30px;
-		border-radius: 5px;
-		background-color: var(--color-accent);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: var(--layer-3);
-		box-shadow: 0px 0px 5px 2px rgba(0, 0, 0, 0.3);
-		font-size: 12px;
-	}
-
-	.icon.left {
-		transform: rotate(135deg);
-		text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.1);
-	}
-
-	.icon.right {
-		transform: rotate(-45deg);
-		text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.1);
-	}
-
-	.icon.center {
-		display: block;
-		width: 1px;
-		height: 100%;
-		background-color: var(--color);
-		opacity: 0.1;
-	}
-
-	.icon-wrap.active {
-		opacity: 0;
-	}
-
-	.icon-wrap.disabled {
-		opacity: 0;
-	}
 
 	.outer {
 		width: 20px;
