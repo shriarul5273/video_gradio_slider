@@ -7,7 +7,7 @@
 		IconButtonWrapper,
 		FullscreenButton
 	} from "@gradio/atoms";
-	import { Video, Download, Undo, Clear, Play, Pause } from "@gradio/icons";
+	import { Video, Download, Undo, Clear } from "@gradio/icons";
 	import { type FileData } from "@gradio/client";
 	import type { I18nFormatter } from "@gradio/utils";
 	import { DownloadLink } from "@gradio/wasm/svelte";
@@ -51,6 +51,7 @@
 	let videosReady = false;
 	let showControls = true;
 	let controlsTimeout: NodeJS.Timeout;
+	let isMousePressed = false;
 
 	let transform: Tweened<{ x: number; y: number; z: number }> = tweened(
 		{ x: 0, y: 0, z: 1 },
@@ -148,6 +149,28 @@
 			video2.play();
 		}
 		isPlaying = !isPlaying;
+	}
+
+	function handleMouseDown(): void {
+		if (!video1 || !video2 || !videosReady) return;
+		isMousePressed = true;
+		video1.play();
+		video2.play();
+		isPlaying = true;
+	}
+
+	function handleMouseUp(): void {
+		if (!video1 || !video2) return;
+		isMousePressed = false;
+		video1.pause();
+		video2.pause();
+		isPlaying = false;
+	}
+
+	function handleMouseLeave(): void {
+		if (isMousePressed) {
+			handleMouseUp();
+		}
 	}
 
 	function handleTimeSeek(event: Event): void {
@@ -269,14 +292,12 @@
 			bind:this={slider_wrap_parent}
 			bind:clientWidth={el_width}
 			class:limit_height={!fullscreen}
+			class:mouse-pressed={isMousePressed}
 			on:mousemove={showControlsTemporarily}
 			on:mouseenter={() => showControls = true}
-			on:mouseleave={() => {
-				if (isPlaying) {
-					clearTimeout(controlsTimeout);
-					controlsTimeout = setTimeout(() => showControls = false, 1000);
-				}
-			}}
+			on:mouseleave={handleMouseLeave}
+			on:mousedown={handleMouseDown}
+			on:mouseup={handleMouseUp}
 		>
 			<!-- Loading Overlay -->
 			{#if !videosReady}
@@ -305,7 +326,6 @@
 					on:timeupdate={handle_video1_timeupdate}
 					on:play={handle_video1_play}
 					on:pause={handle_video1_pause}
-					on:click={togglePlayPause}
 				>
 					<track kind="captions" />
 				</video>
@@ -327,17 +347,13 @@
 			{#if showControls && videosReady}
 				<div class="custom-controls" transition:slide={{ duration: 200 }}>
 					<div class="controls-content">
-						<button 
-							class="play-pause-btn"
-							on:click={togglePlayPause}
-							aria-label={isPlaying ? "Pause" : "Play"}
-						>
-							{#if isPlaying}
-								<Pause size="1.2rem" />
+						<div class="play-instruction">
+							{#if isMousePressed}
+								<span class="playing-indicator">▶ Playing...</span>
 							{:else}
-								<Play size="1.2rem" />
+								<span class="instruction-text">Hold mouse down to play</span>
 							{/if}
-						</button>
+						</div>
 						
 						<div class="time-display">
 							{formatTime(currentTime)} / {formatTime(duration)}
@@ -425,6 +441,17 @@
 		justify-content: center;
 		background: #000;
 		min-height: 400px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.slider-wrap:hover {
+		background: #111;
+	}
+
+	.slider-wrap.mouse-pressed {
+		background: #222;
+		transform: scale(0.995);
 	}
 
 	.limit_height .video-element {
@@ -442,6 +469,30 @@
 
 	.video-element:hover {
 		cursor: pointer;
+	}
+
+	.play-instruction {
+		display: flex;
+		align-items: center;
+		min-width: 150px;
+	}
+
+	.instruction-text {
+		font-size: 14px;
+		color: rgba(255, 255, 255, 0.8);
+		font-weight: 500;
+	}
+
+	.playing-indicator {
+		font-size: 14px;
+		color: #4ade80;
+		font-weight: 600;
+		animation: pulse 1.5s ease-in-out infinite;
+	}
+
+	@keyframes pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.7; }
 	}
 
 	.base-video {
@@ -503,25 +554,6 @@
 		gap: 16px;
 		padding: 20px;
 		color: white;
-	}
-
-	.play-pause-btn {
-		background: rgba(255, 255, 255, 0.2);
-		border: none;
-		border-radius: 50%;
-		width: 48px;
-		height: 48px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		backdrop-filter: blur(10px);
-	}
-
-	.play-pause-btn:hover {
-		background: rgba(255, 255, 255, 0.3);
-		transform: scale(1.05);
 	}
 
 	.time-display {
@@ -625,11 +657,6 @@
 		.time-display {
 			font-size: 12px;
 			min-width: 80px;
-		}
-		
-		.play-pause-btn {
-			width: 40px;
-			height: 40px;
 		}
 	}
 
