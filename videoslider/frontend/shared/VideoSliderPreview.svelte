@@ -176,6 +176,8 @@
 		height: 100%;
 		position: relative;
 		min-width: var(--size-20);
+		max-width: 800px;
+		margin: 0 auto;
 		background: #f5f5f5;
 		border: 1px solid #ddd;
 	}

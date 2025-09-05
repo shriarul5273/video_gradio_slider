@@ -26,6 +26,7 @@
 	export let slider_color: string;
 	export let show_fullscreen_button: boolean;
 	export let max_height: number;
+	export let layer_videos = true;
 
 	export let container = true;
 	export let scale: number | null = null;

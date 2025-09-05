@@ -2,29 +2,27 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal, Tuple, Union
 
-from gradio_client import handle_file
-from gradio_client.documentation import document
+from gradio_client import utils as client_utils, handle_file
 
+from gradio import processing_utils, utils
 from gradio.components.base import Component
-from gradio.data_classes import GradioRootModel, FileData
 from gradio.events import Events
+from gradio.data_classes import GradioRootModel, FileData
 
 
-class VideoSliderData(GradioRootModel):
-    root: tuple[FileData | None, FileData | None] | None
+class SliderData(GradioRootModel):
+    root: Union[Tuple[FileData | None, FileData | None], None]
 
 
-video_tuple = tuple[
-    str | Path | None, str | Path | None
-]
-
-
-if TYPE_CHECKING:
-    from gradio.components import Timer
+video_variants = str | Path | FileData | None
+video_tuple = (
+    tuple[str, str]
+    | tuple[str | Path | None, str | Path | None]
+    | None
+)
 
 
 class VideoSlider(Component):
@@ -44,14 +42,16 @@ class VideoSlider(Component):
         Events.input,
     ]
 
-    data_model = VideoSliderData
+    data_model = SliderData
 
     def __init__(
         self,
-        value: video_tuple | Callable | None = None,
+        value: video_tuple = None,
+        position: float = 0.5,
+        upload_count: int = 1,
         *,
-        height: int | str | None = None,
-        width: int | str | None = None,
+        height: int | None = None,
+        width: int | None = None,
         label: str | None = None,
         every: Timer | float | None = None,
         inputs: Component | Sequence[Component] | set[Component] | None = None,
@@ -68,7 +68,8 @@ class VideoSlider(Component):
         key: int | str | tuple[int | str, ...] | None = None,
         preserved_by_key: list[str] | str | None = "value",
         show_fullscreen_button: bool = True,
-        slider_position: float = 50,
+        show_share_button: bool | None = None,
+        slider_color: str | None = None,
         max_height: int = 500,
     ):
         """
@@ -95,12 +96,19 @@ class VideoSlider(Component):
             slider_position: The position of the slider as a percentage of the width of the video, between 0 and 100.
             max_height: The maximum height of the videos.
         """
-        self.slider_position = slider_position
-        self.max_height = max_height
         self.height = height
         self.width = width
         self.show_download_button = show_download_button
+        self.show_share_button = (
+            (utils.get_space() is not None)
+            if show_share_button is None
+            else show_share_button
+        )
+        self.position = position
+        self.upload_count = upload_count
+        self.slider_color = slider_color
         self.show_fullscreen_button = show_fullscreen_button
+        self.max_height = max_height
 
         super().__init__(
             label=label,
@@ -121,50 +129,53 @@ class VideoSlider(Component):
         )
         self._value_description = "a tuple of filepaths to video files"
 
-    def preprocess(self, payload: VideoSliderData | None) -> video_tuple | None:
+    def _preprocess_video(self, x: str | FileData | None):
+        if x is None:
+            return x
+        elif isinstance(x, str):
+            return x
+        else:
+            return x.path
+
+    def preprocess(self, x: SliderData) -> video_tuple:
         """
         Parameters:
-            payload: video data in the form of a VideoSliderData object
+            x: SliderData object containing videos as string filepaths or string urls.
         Returns:
-            Passes the uploaded videos as a tuple of file paths.
+            tuple of videos in the requested format.
         """
-        if payload is None:
-            return None
-        if payload.root is None:
-            raise ValueError("Payload is None.")
-        
-        video1_path = None
-        video2_path = None
-        
-        if payload.root[0] is not None:
-            video1_path = payload.root[0].path
-        if payload.root[1] is not None:
-            video2_path = payload.root[1].path
-            
-        return (video1_path, video2_path)
+        if x is None:
+            return x
+
+        return self._preprocess_video(x.root[0]), self._preprocess_video(x.root[1])
+
+    def _postprocess_video(self, y: video_variants):
+        if isinstance(y, (str, Path)):
+            path = y if isinstance(y, str) else str(utils.abspath(y))
+        else:
+            raise ValueError("Cannot process this value as a Video")
+
+        return path
 
     def postprocess(
         self,
-        value: tuple[str | Path | None, str | Path | None] | None,
-    ) -> VideoSliderData | None:
+        y: video_tuple,
+    ) -> tuple[FileData | str | None, FileData | str | None] | None:
         """
         Parameters:
-            value: Expects a tuple of file paths to videos which are displayed.
+            y: video as a string/Path filepath, or string URL
         Returns:
-            Returns the videos as a VideoSliderData object.
+            base64 url data
         """
-        if value is None:
+        if y is None:
             return None
-        
-        video1_data = None
-        video2_data = None
-        
-        if value[0] is not None:
-            video1_data = FileData(path=str(value[0]))
-        if value[1] is not None:
-            video2_data = FileData(path=str(value[1]))
-            
-        return VideoSliderData(root=(video1_data, video2_data))
+
+        return SliderData(
+            root=(
+                FileData(path=self._postprocess_video(y[0])),
+                FileData(path=self._postprocess_video(y[1])),
+            )
+        )
 
     def api_info_as_output(self) -> dict[str, Any]:
         return self.api_info()

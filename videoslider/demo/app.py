@@ -91,12 +91,18 @@ def fn(video_tuple):
         return result
 
 with gr.Blocks() as demo:
-    with gr.Group():
-        video_slider = VideoSlider(
-            label="Invert video", 
-            height=400,
-            max_height=400
-        )
+    with gr.Row():
+        with gr.Column(scale=1):
+            gr.HTML("")  # Empty column for spacing
+        with gr.Column(scale=2):
+            video_slider = VideoSlider(
+                label="Invert video", 
+                height=400,
+                width=600,
+                max_height=400
+            )
+        with gr.Column(scale=1):
+            gr.HTML("")  # Empty column for spacing
         video_slider.upload(fn, inputs=video_slider, outputs=video_slider)
 
 if __name__ == "__main__":

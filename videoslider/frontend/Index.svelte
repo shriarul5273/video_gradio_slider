@@ -35,13 +35,13 @@
 	export let show_fullscreen_button: boolean;
 	let fullscreen = false;
 	export let input_ready: boolean;
-	export let slider_position: number;
+	export let position: number;
 	export let slider_color = "var(--border-color-primary)";
 	export let max_height: number;
 	let uploading = false;
 
-	$: normalised_slider_position =
-		Math.max(0, Math.min(100, slider_position)) / 100;
+	$: normalised_position =
+		Math.max(0, Math.min(1, position)) / 1;
 
 	$: input_ready = !uploading;
 
@@ -140,7 +140,7 @@
 			{show_download_button}
 			i18n={gradio.i18n}
 			{show_fullscreen_button}
-			position={normalised_slider_position}
+			position={normalised_position}
 			{slider_color}
 			{max_height}
 		/>

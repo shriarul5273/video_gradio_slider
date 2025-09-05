@@ -1,100 +1,77 @@
-<script lang="ts">
+<script>
 	import { onMount } from "svelte";
 	import { drag } from "d3-drag";
 	import { select } from "d3-selection";
-
-	function clamp(value: number, min: number, max: number): number {
-		return Math.min(Math.max(value, min), max);
-	}
+	import { clamp } from "./utils";
+	import Arrow from './ArrowIcon.svelte'
 
 	export let position = 0.5;
 	export let disabled = false;
-
 	export let slider_color = "var(--border-color-primary)";
-	export let image_size: {
-		top: number;
-		left: number;
-		width: number;
-		height: number;
-	} = { top: 0, left: 0, width: 0, height: 0 };
-	export let el: HTMLDivElement | undefined = undefined;
-	export let parent_el: HTMLDivElement | undefined = undefined;
-	let inner: Element;
-	let px = 0;
+	
+
 	let active = false;
-	let container_width = 0;
+	let el;
+	let inner;
+	let box;
+	let px = 0;
 
-	function set_position(width: number): void {
-		container_width = parent_el?.getBoundingClientRect().width || 0;
-		if (width === 0) {
-			image_size.width = el?.getBoundingClientRect().width || 0;
-		}
-
-		px = clamp(
-			image_size.width * position + image_size.left,
-			0,
-			container_width
-		);
+	function set_position() {
+		box = el.getBoundingClientRect();
+		px = clamp(box.width * position - 10, 0, box.width - 20);
 	}
 
-	function round(n: number, points: number): number {
+	function round(n, points) {
 		const mod = Math.pow(10, points);
 		return Math.round((n + Number.EPSILON) * mod) / mod;
 	}
-
-	function update_position(x: number): void {
-		px = clamp(x, 0, container_width);
-		position = round((x - image_size.left) / image_size.width, 5);
+	function update_position(x) {
+		px = x - 10;
+		position = round(x / box.width, 5);
 	}
 
-	function drag_start(event: any): void {
+	function dragstarted(event) {
 		if (disabled) return;
 		active = true;
 		update_position(event.x);
 	}
 
-	function drag_move(event: any): void {
+	function dragged(event, d) {
 		if (disabled) return;
 		update_position(event.x);
 	}
 
-	function drag_end(): void {
+	function dragended() {
 		if (disabled) return;
 		active = false;
 	}
 
-	function update_position_from_pc(pc: number): void {
-		px = clamp(image_size.width * pc + image_size.left, 0, container_width);
-	}
-
-	$: set_position(image_size.width);
-	$: update_position_from_pc(position);
+	$: px = box ? clamp(box.width * position - 10, 0, box.width - 20) : 0;
 
 	onMount(() => {
-		set_position(image_size.width);
+		set_position();
 		const drag_handler = drag()
-			.on("start", drag_start)
-			.on("drag", drag_move)
-			.on("end", drag_end);
-		select(inner).call(drag_handler);
+			.on("start", dragstarted)
+			.on("drag", dragged)
+			.on("end", dragended);
+		select(el).call(drag_handler);
 	});
 </script>
 
-<svelte:window on:resize={() => set_position(image_size.width)} />
+<svelte:window on:resize={set_position} />
 
-<div class="wrap" role="none" bind:this={parent_el}>
-	<div class="content" bind:this={el}>
-		<slot />
-	</div>
+<div class="wrap" bind:this={el}>
+	<slot />
 	<div
 		class="outer"
 		class:disabled
 		bind:this={inner}
 		role="none"
 		style="transform: translateX({px}px)"
-		class:grab={active}
 	>
+		<span class="icon-wrap" class:active class:disabled><Arrow /></span>
 		<div class="inner" style:--color={slider_color}></div>
+		<span class="icon-wrap right" class:active class:disabled><Arrow /></span>
 	</div>
 </div>
 
@@ -103,11 +80,31 @@
 		position: relative;
 		width: 100%;
 		height: 100%;
-		z-index: var(--layer-1);
-		overflow: hidden;
+		z-index: 100;
 	}
 
+	.icon-wrap {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		left: -40px;
+		width: 32px;
+		transition: 0.2s;
+		color: var(--body-text-color);
+	}
 
+	.icon-wrap.right {
+		left: 60px;
+		transform: translateY(-50%) translateX(-100%) rotate(180deg);
+	}
+
+	.icon-wrap.active {
+		opacity: 0;
+	}
+
+	.icon-wrap.disabled {
+		opacity: 0;
+	}
 	.outer {
 		width: 20px;
 		height: 100%;
@@ -115,15 +112,11 @@
 		cursor: grab;
 		position: absolute;
 		top: 0;
-		left: -10px;
-		pointer-events: auto;
-		z-index: var(--layer-2);
-	}
-	.grab {
-		cursor: grabbing;
+		left: 0;
 	}
 
 	.inner {
+		box-shadow: -1px 0px 6px 1px rgba(0, 0, 0, 0.2);
 		width: 1px;
 		height: 100%;
 		background: var(--color);
@@ -137,13 +130,5 @@
 
 	.disabled .inner {
 		box-shadow: none;
-	}
-
-	.content {
-		width: 100%;
-		height: 100%;
-		display: flex;
-		justify-content: center;
-		align-items: center;
 	}
 </style>
