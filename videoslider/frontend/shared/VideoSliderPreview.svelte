@@ -93,14 +93,14 @@
 	<Empty unpadded_box={true} size="large">
 		<div class="empty-state">
 			<Video size="3rem" />
-			<p class="empty-text">Upload two videos to compare</p>
+			<p class="empty-text">Drop video here</p>
 		</div>
 	</Empty>
 {:else}
 	<div class="video-container" bind:this={video_container}>
 		<!-- Simple Header -->
 		<div class="header">
-			<span>Click to play/pause videos</span>
+			<span>position={position.toFixed(2)}</span>
 			{#if interactive}
 				<IconButton
 					Icon={Clear}
@@ -178,8 +178,9 @@
 		min-width: var(--size-20);
 		max-width: 800px;
 		margin: 0 auto;
-		background: #f5f5f5;
+		background: transparent;
 		border: 1px solid #ddd;
+		overflow: hidden;
 	}
 
 	.header {
@@ -200,7 +201,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: #000;
+		background: transparent;
 		min-height: 400px;
 		cursor: pointer;
 		outline: none;
@@ -212,9 +213,9 @@
 
 	.video-element {
 		width: 100%;
-		height: auto;
+		height: 100%;
 		display: block;
-		object-fit: contain;
+		object-fit: cover;
 		cursor: pointer;
 	}
 

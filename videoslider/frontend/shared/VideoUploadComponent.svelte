@@ -88,8 +88,7 @@
 	{:else}
 		<!-- Upload area for video pair -->
 		<div class="upload-section">
-			<div class="upload-label">Upload Video Pair</div>
-			<div class="upload-instructions">Upload two videos to compare side by side</div>
+			<div class="upload-label">Drop video here</div>
 			
 			<Upload
 				filetype="video/mp4,video/avi,video/mov,video/mkv,video/webm,video/*"
@@ -137,8 +136,7 @@
 				<div class="upload-placeholder">
 					<slot />
 					<div class="upload-hint">
-						Drop two video files here or click to browse<br/>
-						<small>You can upload files one at a time or select multiple files</small>
+						Drop video here
 					</div>
 				</div>
 			</Upload>
